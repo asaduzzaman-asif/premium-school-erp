@@ -49,7 +49,7 @@ export default function Sidebar() {
       { name: "Finance & Fees", path: "/dashboard/finance", icon: DollarSign },
       { name: "Library", path: "/dashboard/library", icon: Library },
       { name: "Assign Teachers", path: "/dashboard/assign-teacher", icon: BookOpen },
-      { name: "User Roles", path: "/dashboard/users", icon: Shield }, // নতুন User Management পেজ
+      { name: "User Roles", path: "/dashboard/users", icon: Shield },
       { name: "Settings", path: "/dashboard/settings", icon: Settings },
     ];
   } else if (role === "Teacher") {
@@ -71,8 +71,8 @@ export default function Sidebar() {
   } else if (role === "Parent" || role === "Student") {
     menus = [
       { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-      // Parent হলে "My Children", Student হলে "My Profile"
-      { name: role === "Parent" ? "My Children" : "My Profile", path: "/dashboard/students", icon: Users },
+      // এখানে পাথ পরিবর্তন করে সরাসরি /dashboard দেওয়া হলো যাতে নতুন ফোল্ডার ছাড়াই প্রিমিয়াম প্রোফাইল দেখায়
+      { name: role === "Parent" ? "My Children" : "My Profile", path: "/dashboard", icon: Users },
       { name: "Homework", path: "/dashboard/homework", icon: ClipboardList },
       { name: "Notice Board", path: "/dashboard/notices", icon: BellRing }, 
       { name: "Library", path: "/dashboard/library", icon: Library },
