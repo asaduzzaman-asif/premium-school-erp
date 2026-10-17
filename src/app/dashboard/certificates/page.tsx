@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileBadge, Printer, IdCard, GraduationCap } from "lucide-react";
-import Image from "next/image";
 
 export default function CertificatesPage() {
   const [role, setRole] = useState("");
@@ -18,10 +17,24 @@ export default function CertificatesPage() {
   const [docType, setDocType] = useState("ID_CARD");
   const [photoUrl, setPhotoUrl] = useState("");
 
+  // Settings State (ডাইনামিক নাম এবং বছরের জন্য)
+  const [schoolName, setSchoolName] = useState("School ERP");
+  const [academicYear, setAcademicYear] = useState("2026-2027");
+
   useEffect(() => {
     setRole(localStorage.getItem("userRole") || "");
     fetchStudents();
+    fetchSchoolSettings();
   }, []);
+
+  // ডাটাবেস থেকে স্কুলের সেটিংস নিয়ে আসা
+  const fetchSchoolSettings = async () => {
+    const { data } = await supabase.from("school_settings").select("*").eq("id", 1).single();
+    if (data) {
+      setSchoolName(data.institution_name);
+      setAcademicYear(data.academic_year);
+    }
+  };
 
   const fetchStudents = async () => {
     const { data } = await supabase
@@ -80,7 +93,7 @@ export default function CertificatesPage() {
           <CardContent className="p-6 space-y-6">
             <div className="space-y-2">
               <Label>Document Type</Label>
-              <Select value={docType} onValueChange={setDocType}>
+              <Select value={docType || ""} onValueChange={setDocType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ID_CARD">Student ID Card</SelectItem>
@@ -92,7 +105,7 @@ export default function CertificatesPage() {
 
             <div className="space-y-2">
               <Label>Select Student</Label>
-              <Select onValueChange={handleStudentSelect}>
+              <Select value={selectedStudent ? selectedStudent.id.toString() : ""} onValueChange={handleStudentSelect}>
                 <SelectTrigger><SelectValue placeholder="-- Choose Student --" /></SelectTrigger>
                 <SelectContent>
                   {students.map((s) => (
@@ -144,7 +157,7 @@ export default function CertificatesPage() {
                 <div className="w-[350px] h-[550px] bg-white border-2 border-blue-600 rounded-2xl shadow-xl overflow-hidden relative print:shadow-none print:border-blue-600">
                   <div className="bg-blue-600 h-32 flex flex-col items-center justify-center text-white text-center px-4 rounded-b-[50%]">
                     <GraduationCap className="w-10 h-10 mb-1" />
-                    <h3 className="font-bold text-lg leading-tight">PREMIUM SCHOOL ERP</h3>
+                    <h3 className="font-bold text-lg leading-tight uppercase">{schoolName}</h3>
                   </div>
                   <div className="absolute top-24 left-1/2 -translate-x-1/2 w-24 h-24 bg-white rounded-full border-4 border-white shadow-md overflow-hidden flex items-center justify-center">
                     {selectedStudent.photo_url ? (
@@ -169,7 +182,7 @@ export default function CertificatesPage() {
                     </div>
                   </div>
                   <div className="absolute bottom-0 w-full bg-slate-900 text-white text-center py-2 text-xs">
-                    Valid for Academic Year 2026-2027
+                    Valid for Academic Year {academicYear}
                   </div>
                 </div>
               )}
@@ -179,8 +192,8 @@ export default function CertificatesPage() {
                 <div className="w-full max-w-2xl bg-white border border-slate-300 p-8 shadow-xl print:shadow-none print:border-none">
                   <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
                     <GraduationCap className="w-12 h-12 mx-auto text-slate-800 mb-2" />
-                    <h1 className="text-2xl font-bold uppercase tracking-wider">Premium School ERP</h1>
-                    <p className="text-sm font-semibold mt-1 bg-slate-800 text-white inline-block px-4 py-1 rounded-full">EXAMINATION ADMIT CARD 2026</p>
+                    <h1 className="text-2xl font-bold uppercase tracking-wider">{schoolName}</h1>
+                    <p className="text-sm font-semibold mt-1 bg-slate-800 text-white inline-block px-4 py-1 rounded-full">EXAMINATION ADMIT CARD {academicYear}</p>
                   </div>
                   <div className="flex justify-between items-start mb-8">
                     <div className="space-y-3 text-sm">
@@ -222,8 +235,8 @@ export default function CertificatesPage() {
               {docType === "TC" && (
                 <div className="w-full max-w-2xl bg-white border-[10px] border-double border-slate-200 p-10 shadow-xl text-center print:shadow-none print:border-slate-800">
                   <GraduationCap className="w-16 h-16 mx-auto text-blue-800 mb-4" />
-                  <h1 className="text-3xl font-extrabold text-blue-900 uppercase tracking-widest mb-1">Premium School ERP</h1>
-                  <p className="text-sm text-slate-500 mb-8">123 Education Street, Dhaka, Bangladesh</p>
+                  <h1 className="text-3xl font-extrabold text-blue-900 uppercase tracking-widest mb-1">{schoolName}</h1>
+                  <p className="text-sm text-slate-500 mb-8">Academic Session: {academicYear}</p>
                   
                   <h2 className="text-xl font-bold bg-blue-100 text-blue-800 py-2 px-8 inline-block rounded-full mb-10 border border-blue-200">TRANSFER CERTIFICATE</h2>
                   
