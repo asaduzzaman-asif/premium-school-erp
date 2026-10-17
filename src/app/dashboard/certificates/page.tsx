@@ -80,7 +80,7 @@ export default function CertificatesPage() {
           <CardContent className="p-6 space-y-6">
             <div className="space-y-2">
               <Label>Document Type</Label>
-              <Select value={docType || undefined} onValueChange={(val: any) => setDocType(val || "ID_CARD")}>
+              <Select value={docType} onValueChange={(val: any) => setDocType(val)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ID_CARD">Student ID Card</SelectItem>
@@ -93,8 +93,8 @@ export default function CertificatesPage() {
             <div className="space-y-2">
               <Label>Select Student</Label>
               <Select 
-                value={selectedStudent ? selectedStudent.id.toString() : undefined} 
-                onValueChange={(val: any) => handleStudentSelect(val || "")}
+                value={selectedStudent ? selectedStudent.id.toString() : ""} 
+                onValueChange={(val: any) => handleStudentSelect(val)}
               >
                 <SelectTrigger><SelectValue placeholder="-- Choose Student --" /></SelectTrigger>
                 <SelectContent>
