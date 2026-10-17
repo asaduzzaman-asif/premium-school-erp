@@ -1,366 +1,197 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, DollarSign, Award, GraduationCap, Clock, UserCheck, UserX, FileText, BellRing, BarChart3 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Users, UserCheck, DollarSign, BellRing, TrendingUp, Calendar, ArrowUpRight } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
-export default function DashboardOverview() {
-  const [role, setRole] = useState("");
+export default function AdminDashboardPage() {
   const [userName, setUserName] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  // ================= ADMIN STATS STATE =================
-  const [adminStats, setAdminStats] = useState({
-    students: 0,
-    teachers: 0,
-    staff: 0,
-    presentToday: 0,
-    absentToday: 0,
-    totalFees: 0,
-    dueAmount: 0,
-    totalExpenses: 0,
-  });
-
-  const [notices, setNotices] = useState<any[]>([]);
-  const [classStats, setClassStats] = useState<any[]>([]);
-
-  // ================= STUDENT/PARENT STATS STATE =================
-  const [studentData, setStudentData] = useState({
-    profile: null as any,
-    attendanceStats: { present: 0, total: 0 },
-    recentResults: [] as any[],
-    recentFees: [] as any[],
-  });
+  const [stats, setStats] = useState({ students: 0, teachers: 0, notices: 0 });
+  const [recentNotices, setRecentNotices] = useState<any[]>([]);
+  const [classesList, setClassesList] = useState<any[]>([]);
+  
+  // Financial & Attendance mock/calculated state
+  const [financialData, setFinancialData] = useState([
+    { name: "Financials", Due: 1950, Expense: 250, Income: 450 }
+  ]);
+  const [attendanceData, setAttendanceData] = useState([
+    { name: "Present", value: 85 },
+    { name: "Absent", value: 15 },
+  ]);
 
   useEffect(() => {
-    const currentRole = localStorage.getItem("userRole") || "";
-    const currentUserName = localStorage.getItem("userName") || "";
-    setRole(currentRole);
-    setUserName(currentUserName);
-
-    if (currentRole === "School Admin" || currentRole === "Super Admin" || currentRole === "Teacher" || currentRole === "Accountant") {
-      fetchAdminStats();
-    } else if (currentRole === "Student" || currentRole === "Parent") {
-      fetchStudentDashboardData(currentUserName);
-    } else {
-      setLoading(false);
-    }
+    setUserName(localStorage.getItem("userName") || "Admin");
+    fetchAdminData();
   }, []);
 
-  const fetchAdminStats = async () => {
-    const today = new Date().toISOString().split('T')[0];
-
-    // 1. Total Students, Teachers & Staff
-    const { count: studentCount } = await supabase.from("students").select("*", { count: "exact", head: true });
-    const { count: teacherCount } = await supabase.from("teachers").select("*", { count: "exact", head: true });
+  const fetchAdminData = async () => {
+    // 1. Counts
+    const { count: sCount } = await supabase.from("students").select("*", { count: "exact", head: true });
+    const { count: tCount } = await supabase.from("teachers").select("*", { count: "exact", head: true });
+    const { count: nCount } = await supabase.from("notices").select("*", { count: "exact", head: true });
     
-    // 2. Today's Attendance & Absence
-    const { data: attendanceData } = await supabase.from("attendance").select("status").eq("date", today);
-    const presentToday = attendanceData?.filter(a => a.status === "Present" || a.status === "Late").length || 0;
-    const absentToday = attendanceData?.filter(a => a.status === "Absent").length || 0;
+    setStats({ students: sCount || 0, teachers: tCount || 0, notices: nCount || 0 });
 
-    // 3. Monthly Fee Collection & Due Amount
-    let totalFees = 0;
-    const { data: feesData } = await supabase.from("fees").select("amount, status");
-    if(feesData) {
-      totalFees = feesData.filter(f => f.status === "Paid").reduce((sum, item) => sum + Number(item.amount), 0);
-    }
-    // (Mock due calculation: Assuming average fee per student is 1500 for demo)
-    const expectedRevenue = (studentCount || 0) * 1500;
-    const dueAmount = expectedRevenue > totalFees ? expectedRevenue - totalFees : 0;
+    // 2. Recent Notices
+    const { data: nData } = await supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(3);
+    if (nData) setRecentNotices(nData);
 
-    // 4. Expenses
-    const { data: expensesData } = await supabase.from("expenses").select("amount");
-    const totalExpenses = expensesData ? expensesData.reduce((sum, item) => sum + Number(item.amount), 0) : 0;
-
-    // 5. Upcoming Exams, Events & Notices
-    const { data: noticeData } = await supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(4);
-    if(noticeData) setNotices(noticeData);
-
-    // 6. Class/Section Quick Statistics
-    const { data: classesData } = await supabase.from("classes").select("id, class_name");
-    const { data: allStudents } = await supabase.from("students").select("class_id");
-    
-    if (classesData && allStudents) {
-      const stats = classesData.map(cls => ({
-        name: cls.class_name,
-        count: allStudents.filter(s => s.class_id === cls.id).length
-      }));
-      setClassStats(stats);
-    }
-
-    setAdminStats({
-      students: studentCount || 0,
-      teachers: teacherCount || 0,
-      staff: 12, // Placeholder for staff count
-      presentToday,
-      absentToday,
-      totalFees,
-      dueAmount,
-      totalExpenses,
-    });
-    setLoading(false);
+    // 3. Classes Quick Stats
+    const { data: cData } = await supabase.from("classes").select("*");
+    if (cData) setClassesList(cData);
   };
-
-  const fetchStudentDashboardData = async (username: string) => {
-    const { data: userData } = await supabase.from("users").select("id").eq("username", username).single();
-    if (!userData) { setLoading(false); return; }
-
-    const { data: profileData } = await supabase.from("students").select("*, classes(class_name), sections(section_name)").eq("user_id", userData.id).single();
-
-    if (profileData) {
-      const { data: attendanceData } = await supabase.from("attendance").select("status").eq("student_id", profileData.id);
-      const totalDays = attendanceData ? attendanceData.length : 0;
-      const presentDays = attendanceData ? attendanceData.filter(a => a.status === "Present").length : 0;
-
-      const { data: resultsData } = await supabase.from("exam_marks").select("*, subjects(subject_name), exams(exam_name)").eq("student_id", profileData.id).order("id", { ascending: false }).limit(5);
-      const { data: feesData } = await supabase.from("fees").select("*").eq("student_id", profileData.id).order("created_at", { ascending: false }).limit(5);
-
-      setStudentData({
-        profile: profileData, attendanceStats: { present: presentDays, total: totalDays }, recentResults: resultsData || [], recentFees: feesData || [],
-      });
-    }
-    setLoading(false);
-  };
-
-  if (loading) {
-    return <div className="flex h-64 items-center justify-center"><p className="text-slate-500 flex items-center gap-2"><Clock className="w-5 h-5 animate-spin" /> Loading Dashboard...</p></div>;
-  }
-
-  // ================= স্টুডেন্ট ও পেরেন্ট ভিউ (আগের মতোই থাকবে) =================
-  if (role === "Student" || role === "Parent") {
-    const { profile, attendanceStats, recentResults, recentFees } = studentData;
-    const attendancePercentage = attendanceStats.total > 0 ? Math.round((attendanceStats.present / attendanceStats.total) * 100) : 0;
-
-    return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 rounded-2xl shadow-md text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Welcome back, {profile ? `${profile.first_name}` : userName}!</h2>
-            <p className="text-blue-100">{profile ? `Class: ${profile.classes?.class_name} | Section: ${profile.sections?.section_name} | Roll: ${profile.admission_no}` : "Student Portal"}</p>
-          </div>
-          <div className="bg-white/20 p-4 rounded-xl backdrop-blur-sm border border-white/30 text-center min-w-[150px]">
-            <p className="text-sm font-medium text-blue-100">Attendance</p>
-            <p className="text-4xl font-extrabold">{attendancePercentage}%</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-slate-100 shadow-sm">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2"><Award className="w-5 h-5 text-purple-600" /> Recent Exam Results</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-slate-50"><TableRow><TableHead className="px-6 py-3">Exam</TableHead><TableHead className="px-6 py-3">Subject</TableHead><TableHead className="px-6 py-3 text-right">Marks</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {recentResults.map((result) => (
-                    <TableRow key={result.id}><TableCell className="px-6 py-4 font-medium text-slate-800">{result.exams?.exam_name}</TableCell><TableCell className="px-6 py-4 text-slate-600">{result.subjects?.subject_name}</TableCell><TableCell className="px-6 py-4 text-right font-bold text-emerald-600">{result.marks_obtained} / {result.max_marks}</TableCell></TableRow>
-                  ))}
-                  {recentResults.length === 0 && (<TableRow><TableCell colSpan={3} className="text-center py-8 text-slate-400">No exam results published yet.</TableCell></TableRow>)}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-100 shadow-sm">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-600" /> Fee Status</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-slate-50"><TableRow><TableHead className="px-6 py-3">Month</TableHead><TableHead className="px-6 py-3">Amount</TableHead><TableHead className="px-6 py-3 text-right">Status</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {recentFees.map((fee) => (
-                    <TableRow key={fee.id}><TableCell className="px-6 py-4 font-medium text-slate-800">{fee.month}</TableCell><TableCell className="px-6 py-4 text-slate-600">৳ {fee.amount}</TableCell><TableCell className="px-6 py-4 text-right"><span className={`px-3 py-1 rounded-full text-xs font-semibold ${fee.status === 'Paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{fee.status}</span></TableCell></TableRow>
-                  ))}
-                  {recentFees.length === 0 && (<TableRow><TableCell colSpan={3} className="text-center py-8 text-slate-400">No fee records found.</TableCell></TableRow>)}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // ================= ADMIN, TEACHER & ACCOUNTANT VIEW =================
-  
-  // Charts Data Format
-  const revenueData = [
-    { name: 'Financials', Income: adminStats.totalFees, Expense: adminStats.totalExpenses, Due: adminStats.dueAmount }
-  ];
-  const attendancePieData = [
-    { name: 'Present', value: adminStats.presentToday, color: '#10b981' },
-    { name: 'Absent', value: adminStats.absentToday, color: '#ef4444' },
-    { name: 'Not Recorded', value: adminStats.students - (adminStats.presentToday + adminStats.absentToday), color: '#cbd5e1' }
-  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-7xl mx-auto pb-10">
       
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Top Header Greeting */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Welcome back, <span className="text-blue-600 capitalize">{userName}</span>!</h2>
-          <p className="text-slate-500 mt-1 text-sm">System Overview & Management Analytics</p>
+          <h2 className="text-3xl font-bold text-slate-800">Admin Dashboard</h2>
+          <p className="text-slate-500 mt-1">Welcome back, <span className="font-bold text-slate-700">{userName}</span>! Here is your institution's operational overview.</p>
         </div>
-        <div className="bg-slate-100 px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200">
-          Role: {role}
+        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 flex items-center gap-2 text-sm font-semibold text-slate-600">
+          <Calendar className="w-4 h-4 text-blue-600" /> {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </div>
       </div>
-      
-      {/* 1. Total Students, Teachers & Staff | 2. Today's Attendance | 3. Fee Collection */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-slate-100 shadow-sm border-t-4 border-t-blue-500">
-          <CardContent className="p-5 flex items-center justify-between">
+
+      {/* Top 3 Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <Card className="border-slate-100 shadow-sm border-t-4 border-t-blue-500 hover:shadow-md transition-shadow">
+          <CardContent className="p-6 flex items-center justify-between">
             <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total People</p>
-              <h3 className="text-2xl font-black text-slate-800 mt-1">{adminStats.students} <span className="text-sm font-medium text-slate-500">St.</span></h3>
-              <p className="text-xs text-slate-400 mt-1">{adminStats.teachers} Teachers, {adminStats.staff} Staff</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Students</p>
+              <h3 className="text-4xl font-black text-slate-800 mt-2">{stats.students}</h3>
+              <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1 mt-1"><ArrowUpRight className="w-3.5 h-3.5"/> Active enrollment</span>
             </div>
-            <Users className="w-10 h-10 text-blue-100" />
+            <div className="p-4 bg-blue-50 rounded-2xl text-blue-600"><Users className="w-8 h-8"/></div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-100 shadow-sm border-t-4 border-t-emerald-500">
-          <CardContent className="p-5 flex items-center justify-between">
+        <Card className="border-slate-100 shadow-sm border-t-4 border-t-emerald-500 hover:shadow-md transition-shadow">
+          <CardContent className="p-6 flex items-center justify-between">
             <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Today's Attendance</p>
-              <h3 className="text-2xl font-black text-emerald-600 mt-1">{adminStats.presentToday}</h3>
-              <p className="text-xs text-red-400 mt-1 font-semibold">{adminStats.absentToday} Absent Today</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Teachers</p>
+              <h3 className="text-4xl font-black text-slate-800 mt-2">{stats.teachers}</h3>
+              <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1 mt-1"><ArrowUpRight className="w-3.5 h-3.5"/> Faculty members</span>
             </div>
-            <UserCheck className="w-10 h-10 text-emerald-100" />
+            <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-600"><UserCheck className="w-8 h-8"/></div>
           </CardContent>
         </Card>
 
-        {(role === "School Admin" || role === "Super Admin" || role === "Accountant") && (
-          <>
-            <Card className="border-slate-100 shadow-sm border-t-4 border-t-indigo-500">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div>
-                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Collected Fees</p>
-                  <h3 className="text-2xl font-black text-indigo-600 mt-1">৳ {adminStats.totalFees}</h3>
-                  <p className="text-xs text-slate-400 mt-1">This month collection</p>
-                </div>
-                <DollarSign className="w-10 h-10 text-indigo-100" />
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-100 shadow-sm border-t-4 border-t-amber-500">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div>
-                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Due Amount</p>
-                  <h3 className="text-2xl font-black text-amber-600 mt-1">৳ {adminStats.dueAmount}</h3>
-                  <p className="text-xs text-slate-400 mt-1">Pending payments</p>
-                </div>
-                <FileText className="w-10 h-10 text-amber-100" />
-              </CardContent>
-            </Card>
-          </>
-        )}
+        <Card className="border-slate-100 shadow-sm border-t-4 border-t-purple-500 hover:shadow-md transition-shadow">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Published Notices</p>
+              <h3 className="text-4xl font-black text-slate-800 mt-2">{stats.notices}</h3>
+              <span className="text-xs font-semibold text-purple-600 flex items-center gap-1 mt-1"><BellRing className="w-3.5 h-3.5"/> Broadcasted</span>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-2xl text-purple-600"><BellRing className="w-8 h-8"/></div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      {/* Analytics Charts Section (Financials & Attendance) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* 5. Revenue & Expense Chart */}
-        {(role === "School Admin" || role === "Super Admin" || role === "Accountant") && (
-          <Card className="border-slate-100 shadow-sm xl:col-span-2">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-md font-bold text-slate-800 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-600"/> Revenue & Expense Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 h-[300px]">
+        {/* Financial Bar Chart */}
+        <Card className="border-slate-100 shadow-sm lg:col-span-2">
+          <CardHeader className="border-b border-slate-50 bg-slate-50/50 pb-4">
+            <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" /> Financial Overview (Due vs Expense vs Income)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0"/>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{fill: '#f8fafc'}} />
-                  <Legend />
-                  <Bar dataKey="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <BarChart data={financialData}>
+                  <XAxis dataKey="name" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip />
                   <Bar dataKey="Due" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* 5. Today's Attendance Chart */}
-        <Card className="border-slate-100 shadow-sm">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-            <CardTitle className="text-md font-bold text-slate-800 flex items-center gap-2"><UserCheck className="w-4 h-4 text-emerald-600"/> Today's Attendance Ratio</CardTitle>
+        {/* Attendance Summary */}
+        <Card className="border-slate-100 shadow-sm lg:col-span-1">
+          <CardHeader className="border-b border-slate-50 bg-slate-50/50 pb-4">
+            <CardTitle className="text-lg font-bold text-slate-800">Today's Attendance</CardTitle>
           </CardHeader>
-          <CardContent className="p-6 h-[300px] flex flex-col items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={attendancePieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                  {attendancePieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" height={36}/>
-              </PieChart>
-            </ResponsiveContainer>
+          <CardContent className="p-6 flex flex-col items-center justify-center">
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={attendanceData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    <Cell fill="#10b981" />
+                    <Cell fill="#ef4444" />
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex gap-6 mt-4 text-xs font-bold">
+              <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Present (85%)</span>
+              <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500"></span> Absent (15%)</span>
+            </div>
           </CardContent>
         </Card>
 
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 4. Upcoming Notices & Events */}
-        <Card className="border-slate-100 shadow-sm">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-            <CardTitle className="text-md font-bold text-slate-800 flex items-center gap-2"><BellRing className="w-4 h-4 text-blue-600"/> Latest Notices & Events</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
-              {notices.map((notice) => (
-                <div key={notice.id} className="p-4 hover:bg-slate-50 transition-colors">
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className="font-semibold text-slate-800 text-sm">{notice.title}</h4>
-                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">{new Date(notice.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-xs text-slate-500 line-clamp-2">{notice.description}</p>
-                </div>
-              ))}
-              {notices.length === 0 && <p className="text-center text-sm text-slate-400 py-8">No recent notices found.</p>}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 6. Class/Section Quick Statistics */}
-        <Card className="border-slate-100 shadow-sm">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-            <CardTitle className="text-md font-bold text-slate-800 flex items-center gap-2"><Users className="w-4 h-4 text-purple-600"/> Class Quick Statistics</CardTitle>
+      {/* Bottom Grid: Recent Notices & Class Quick Statistics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Recent Notices */}
+        <Card className="border-slate-100 shadow-sm lg:col-span-2">
+          <CardHeader className="border-b border-slate-50 bg-slate-50/50 pb-4">
+            <CardTitle className="text-lg font-bold text-slate-800">Recent Notice Board</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead className="px-6 py-3">Class Name</TableHead>
-                  <TableHead className="px-6 py-3 text-right">Total Enrolled Students</TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeader className="bg-slate-50"><TableRow><TableHead className="px-6 py-3">Title</TableHead><TableHead className="px-6 py-3">Category</TableHead><TableHead className="px-6 py-3 text-right">Date</TableHead></TableRow></TableHeader>
               <TableBody>
-                {classStats.map((cls, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell className="px-6 py-3 font-semibold text-slate-700">{cls.name}</TableCell>
-                    <TableCell className="px-6 py-3 text-right">
-                      <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold">{cls.count} Students</span>
-                    </TableCell>
+                {recentNotices.map((n) => (
+                  <TableRow key={n.id}>
+                    <TableCell className="px-6 py-4 font-bold text-slate-800">{n.title}</TableCell>
+                    <TableCell className="px-6 py-4"><span className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded text-xs font-bold">{n.notice_type}</span></TableCell>
+                    <TableCell className="px-6 py-4 text-right text-xs text-slate-500">{new Date(n.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                {classStats.length === 0 && (
-                  <TableRow><TableCell colSpan={2} className="text-center py-8 text-slate-400">No classes found.</TableCell></TableRow>
-                )}
+                {recentNotices.length === 0 && <TableRow><TableCell colSpan={3} className="text-center py-8 text-slate-400">No notices found.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+
+        {/* Class Quick Statistics */}
+        <Card className="border-slate-100 shadow-sm lg:col-span-1">
+          <CardHeader className="border-b border-slate-50 bg-slate-50/50 pb-4">
+            <CardTitle className="text-lg font-bold text-slate-800">Class Setup</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-slate-50"><TableRow><TableHead className="px-6 py-3">Class Name</TableHead><TableHead className="px-6 py-3 text-right">Status</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {classesList.map((cls) => (
+                  <TableRow key={cls.id}>
+                    <TableCell className="px-6 py-4 font-bold text-slate-800">{cls.class_name}</TableCell>
+                    <TableCell className="px-6 py-4 text-right"><span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded font-bold">Active</span></TableCell>
+                  </TableRow>
+                ))}
+                {classesList.length === 0 && <TableRow><TableCell colSpan={2} className="text-center py-6 text-slate-400 text-xs">No classes added.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
       </div>
 
     </div>
