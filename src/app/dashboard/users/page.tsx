@@ -28,35 +28,24 @@ export default function UsersPage() {
   const fetchData = async () => {
     const { data: uData } = await supabase.from("users").select("*").order("id", { ascending: false });
     if (uData) setUsers(uData);
-
     const { data: sData } = await supabase.from("students").select("id, first_name, last_name, admission_no, parent_user_id");
     if (sData) setStudents(sData);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.from("users").insert([{
-      username: formData.username, password_hash: formData.password, role: formData.role
-    }]);
+    e.preventDefault(); setLoading(true);
+    const { error } = await supabase.from("users").insert([{ username: formData.username, password_hash: formData.password, role: formData.role }]);
     setLoading(false);
-    if (!error) {
-      toast.success(`${formData.role} account created!`);
-      setFormData({ username: "", password: "", role: "Parent" });
-      fetchData();
-    } else toast.error(error.message);
+    if (!error) { toast.success(`${formData.role} account created!`); setFormData({ username: "", password: "", role: "Parent" }); fetchData(); } 
+    else toast.error(error.message);
   };
 
   const handleLinkParent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault(); setLoading(true);
     const { error } = await supabase.from("students").update({ parent_user_id: parseInt(linkData.parent_user_id) }).eq("id", parseInt(linkData.student_id));
     setLoading(false);
-    if (!error) {
-      toast.success("Student successfully linked to Parent account!");
-      setLinkData({ parent_user_id: "", student_id: "" });
-      fetchData();
-    } else toast.error(error.message);
+    if (!error) { toast.success("Student successfully linked to Parent account!"); setLinkData({ parent_user_id: "", student_id: "" }); fetchData(); } 
+    else toast.error(error.message);
   };
 
   const deleteUser = async (id: number) => {
@@ -65,37 +54,27 @@ export default function UsersPage() {
     toast.success("User deleted!"); fetchData();
   };
 
-  if (role !== "Super Admin" && role !== "School Admin" && role !== "Principal") {
-    return <div className="p-8 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
-  }
+  if (role !== "Super Admin" && role !== "School Admin" && role !== "Principal") return <div className="p-8 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800">User Roles & Access Control</h2>
-        <p className="text-slate-500 mt-1">Manage system portals, user roles, and parent-student mapping.</p>
-      </div>
+      <div><h2 className="text-3xl font-bold text-slate-800">User Roles & Access Control</h2></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-slate-100 shadow-sm border-t-4 border-t-purple-500">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50"><CardTitle className="text-lg font-bold flex items-center gap-2"><Shield className="w-5 h-5 text-purple-600"/> Create Portal User</CardTitle></CardHeader>
+          <CardHeader className="border-b border-slate-100 bg-slate-50/50"><CardTitle className="text-lg font-bold">Create Portal User</CardTitle></CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-2">
                 <Label>Select Role</Label>
-                <Select value={formData.role || ""} onValueChange={(val) => setFormData({...formData, role: val})}>
+                <Select value={formData.role || undefined} onValueChange={(val: string | null) => setFormData({...formData, role: val || ""})}>
                   <SelectTrigger><SelectValue/></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Super Admin">Super Admin</SelectItem>
-                    <SelectItem value="School Admin">School Admin</SelectItem>
-                    <SelectItem value="Principal">Principal</SelectItem>
-                    <SelectItem value="Parent">Parent/Guardian</SelectItem>
-                  </SelectContent>
+                  <SelectContent><SelectItem value="Super Admin">Super Admin</SelectItem><SelectItem value="School Admin">School Admin</SelectItem><SelectItem value="Principal">Principal</SelectItem><SelectItem value="Parent">Parent/Guardian</SelectItem></SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Username</Label><Input required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} placeholder="e.g. parent_jamal" /></div>
-                <div className="space-y-2"><Label>Password</Label><Input required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="••••••••" /></div>
+                <div className="space-y-2"><Label>Username</Label><Input required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} /></div>
+                <div className="space-y-2"><Label>Password</Label><Input required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} /></div>
               </div>
               <Button type="submit" disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700">Create Account</Button>
             </form>
@@ -103,21 +82,21 @@ export default function UsersPage() {
         </Card>
 
         <Card className="border-slate-100 shadow-sm border-t-4 border-t-blue-500">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50"><CardTitle className="text-lg font-bold flex items-center gap-2"><LinkIcon className="w-5 h-5 text-blue-600"/> Link Children to Parent</CardTitle></CardHeader>
+          <CardHeader className="border-b border-slate-100 bg-slate-50/50"><CardTitle className="text-lg font-bold">Link Children to Parent</CardTitle></CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleLinkParent} className="space-y-4">
               <div className="space-y-2">
                 <Label>Select Parent Account</Label>
-                <Select value={linkData.parent_user_id || ""} onValueChange={(val) => setLinkData({...linkData, parent_user_id: val})}>
-                  <SelectTrigger><SelectValue placeholder="-- Choose Parent --"/></SelectTrigger>
+                <Select value={linkData.parent_user_id || undefined} onValueChange={(val: string | null) => setLinkData({...linkData, parent_user_id: val || ""})}>
+                  <SelectTrigger><SelectValue placeholder="-- Parent --"/></SelectTrigger>
                   <SelectContent>{users.filter(u => u.role === "Parent").map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.username}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Select Student to Link</Label>
-                <Select value={linkData.student_id || ""} onValueChange={(val) => setLinkData({...linkData, student_id: val})}>
-                  <SelectTrigger><SelectValue placeholder="-- Choose Student --"/></SelectTrigger>
-                  <SelectContent>{students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.first_name} {s.last_name} ({s.admission_no})</SelectItem>)}</SelectContent>
+                <Select value={linkData.student_id || undefined} onValueChange={(val: string | null) => setLinkData({...linkData, student_id: val || ""})}>
+                  <SelectTrigger><SelectValue placeholder="-- Student --"/></SelectTrigger>
+                  <SelectContent>{students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.first_name} {s.last_name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">Link Student</Button>
@@ -130,25 +109,19 @@ export default function UsersPage() {
         <CardHeader className="border-b border-slate-100 bg-slate-50/50"><CardTitle className="text-lg font-bold">System Users Directory</CardTitle></CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow><TableHead className="px-6 py-3">Username</TableHead><TableHead className="px-6 py-3">Assigned Role</TableHead><TableHead className="px-6 py-3">Linked Children (For Parents)</TableHead><TableHead className="px-6 py-3 text-right">Action</TableHead></TableRow>
-            </TableHeader>
+            <TableHeader className="bg-slate-50"><TableRow><TableHead className="px-6 py-3">Username</TableHead><TableHead className="px-6 py-3">Role</TableHead><TableHead className="px-6 py-3 text-right">Action</TableHead></TableRow></TableHeader>
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="px-6 py-4 font-bold text-slate-800">{u.username}</TableCell>
-                  <TableCell className="px-6 py-4"><span className={`px-2 py-1 rounded text-xs font-bold ${u.role === 'Super Admin' || u.role === 'School Admin' || u.role === 'Principal' ? 'bg-purple-100 text-purple-700' : u.role === 'Parent' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{u.role}</span></TableCell>
-                  <TableCell className="px-6 py-4 text-xs text-slate-600">
-                    {u.role === "Parent" ? students.filter(s => s.parent_user_id === u.id).map(s => <div key={s.id}>• {s.first_name} {s.last_name} ({s.admission_no})</div>) : "N/A"}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 text-right"><Button size="sm" variant="ghost" onClick={() => deleteUser(u.id)} className="text-red-500 hover:bg-red-50 h-8 w-8 p-0"><Trash2 className="w-4 h-4" /></Button></TableCell>
+                  <TableCell className="px-6 py-4 font-semibold text-blue-600">{u.role}</TableCell>
+                  <TableCell className="px-6 py-4 text-right"><Button size="sm" variant="ghost" onClick={() => deleteUser(u.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-
     </div>
   );
 }

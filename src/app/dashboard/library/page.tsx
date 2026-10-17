@@ -9,19 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Library, BookPlus, BookUp2, CheckCircle2 } from "lucide-react";
+import { Library, BookPlus, BookmarkCheck, Trash2 } from "lucide-react";
 
 export default function LibraryPage() {
-  const [role, setRole] = useState("");
+  const [activeTab, setActiveTab] = useState<"BOOKS" | "ISSUED">("BOOKS");
   const [books, setBooks] = useState<any[]>([]);
-  const [issuedBooks, setIssuedBooks] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // New Book Form State
-  const [bookData, setBookData] = useState({ title: "", author: "", category: "", copies: "1" });
+  const [issuedBooks, setIssuedBooks] = useState<any[]>([]);
   
-  // Issue Book Form State
+  const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState("");
+
+  const [bookData, setBookData] = useState({ title: "", author: "", isbn: "", quantity: "" });
   const [issueData, setIssueData] = useState({ book_id: "", student_id: "", due_date: "" });
 
   useEffect(() => {
@@ -33,227 +32,194 @@ export default function LibraryPage() {
     const { data: bData } = await supabase.from("books").select("*").order("id", { ascending: false });
     if (bData) setBooks(bData);
 
-    const { data: iData } = await supabase
-      .from("book_issues")
-      .select("*, books(title), students(first_name, last_name, admission_no)")
-      .order("issue_date", { ascending: false });
-    if (iData) setIssuedBooks(iData);
-
-    const { data: sData } = await supabase.from("students").select("*");
+    const { data: sData } = await supabase.from("students").select("id, first_name, last_name, admission_no");
     if (sData) setStudents(sData);
+
+    const { data: iData } = await supabase.from("issued_books").select("*, books(title, author), students(first_name, last_name, admission_no)").order("id", { ascending: false });
+    if (iData) setIssuedBooks(iData);
   };
 
-  // ১. নতুন বই অ্যাড করা
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const copies = parseInt(bookData.copies);
     const { error } = await supabase.from("books").insert([{
-      title: bookData.title, author: bookData.author, category: bookData.category, total_copies: copies, available_copies: copies
+      title: bookData.title,
+      author: bookData.author,
+      isbn: bookData.isbn,
+      quantity: parseInt(bookData.quantity),
+      available: parseInt(bookData.quantity)
     }]);
-
     setLoading(false);
     if (!error) {
       toast.success("Book added to library!");
-      setBookData({ title: "", author: "", category: "", copies: "1" });
+      setBookData({ title: "", author: "", isbn: "", quantity: "" });
       fetchData();
     } else toast.error(error.message);
   };
 
-  // ২. স্টুডেন্টকে বই ইস্যু করা
   const handleIssueBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // চেক করা বই অ্যাভেইলেবল আছে কিনা
-    const selectedBook = books.find(b => b.id.toString() === issueData.book_id);
-    if (!selectedBook || selectedBook.available_copies <= 0) {
-      toast.error("This book is currently out of stock!");
-      return;
-    }
-
     setLoading(true);
-    
-    // বই ইস্যু করা এবং available_copies ১ কমানো
-    const { error: issueError } = await supabase.from("book_issues").insert([{
+    const { error } = await supabase.from("issued_books").insert([{
       book_id: parseInt(issueData.book_id),
       student_id: parseInt(issueData.student_id),
-      due_date: issueData.due_date
+      due_date: issueData.due_date,
+      status: "Issued"
     }]);
-
-    if (!issueError) {
-      await supabase.from("books").update({ available_copies: selectedBook.available_copies - 1 }).eq("id", selectedBook.id);
+    setLoading(false);
+    if (!error) {
       toast.success("Book issued successfully!");
       setIssueData({ book_id: "", student_id: "", due_date: "" });
       fetchData();
-    } else toast.error(issueError.message);
-    
-    setLoading(false);
+    } else toast.error(error.message);
   };
 
-  // ৩. বই রিটার্ন নেওয়া
-  const handleReturnBook = async (issueId: number, bookId: number) => {
-    const confirmReturn = window.confirm("Confirm book return?");
-    if (!confirmReturn) return;
-
-    const selectedBook = books.find(b => b.id === bookId);
-    
-    // স্ট্যাটাস আপডেট করা এবং available_copies ১ বাড়ানো
-    const { error } = await supabase.from("book_issues").update({ status: 'Returned', return_date: new Date().toISOString().split('T')[0] }).eq("id", issueId);
-    
-    if (!error && selectedBook) {
-      await supabase.from("books").update({ available_copies: selectedBook.available_copies + 1 }).eq("id", bookId);
-      toast.success("Book returned to library!");
+  const handleReturnBook = async (id: number) => {
+    const { error } = await supabase.from("issued_books").update({ status: "Returned" }).eq("id", id);
+    if (!error) {
+      toast.success("Book returned successfully!");
       fetchData();
     }
+  };
+
+  const deleteBook = async (id: number) => {
+    if(!window.confirm("Delete this book?")) return;
+    await supabase.from("books").delete().eq("id", id);
+    toast.success("Book deleted!");
+    fetchData();
   };
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800">Library Management</h2>
-        <p className="text-slate-500 mt-1">Manage library catalog, book issues, and returns.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800">Library Management</h2>
+          <p className="text-slate-500 mt-1">Manage books, inventory, and student book issuing.</p>
+        </div>
+        
+        <div className="flex bg-slate-200 p-1 rounded-lg w-full md:w-auto">
+          <button onClick={() => setActiveTab("BOOKS")} className={`px-4 py-2 rounded-md text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === "BOOKS" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+            <Library className="w-4 h-4" /> Book Inventory
+          </button>
+          <button onClick={() => setActiveTab("ISSUED")} className={`px-4 py-2 rounded-md text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === "ISSUED" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+            <BookmarkCheck className="w-4 h-4" /> Issue & Return
+          </button>
+        </div>
       </div>
 
-      {(role === "School Admin" || role === "Super Admin" || role === "Librarian") && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Add New Book Form */}
-          <Card className="border-slate-100 shadow-sm">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <BookPlus className="w-5 h-5 text-blue-600" /> Add New Book
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <form onSubmit={handleAddBook} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Book Title</Label>
-                    <Input value={bookData.title} onChange={(e) => setBookData({...bookData, title: e.target.value})} required placeholder="e.g. Physics 1st Paper" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Author Name</Label>
-                    <Input value={bookData.author} onChange={(e) => setBookData({...bookData, author: e.target.value})} required placeholder="Author" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Input value={bookData.category} onChange={(e) => setBookData({...bookData, category: e.target.value})} placeholder="e.g. Science, Fiction" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Total Copies</Label>
-                    <Input type="number" min="1" value={bookData.copies} onChange={(e) => setBookData({...bookData, copies: e.target.value})} required />
-                  </div>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <BookPlus className="w-4 h-4 mr-2" />} Save Book
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+      {activeTab === "BOOKS" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {(role === "School Admin" || role === "Super Admin" || role === "Teacher") && (
+            <Card className="border-slate-100 shadow-sm lg:col-span-1 h-fit border-t-4 border-t-blue-500">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+                <CardTitle className="text-lg font-bold flex items-center gap-2"><BookPlus className="w-5 h-5 text-blue-600"/> Add New Book</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form onSubmit={handleAddBook} className="space-y-4">
+                  <div className="space-y-2"><Label>Book Title</Label><Input required value={bookData.title} onChange={e => setBookData({...bookData, title: e.target.value})} placeholder="e.g. Physics 101" /></div>
+                  <div className="space-y-2"><Label>Author Name</Label><Input required value={bookData.author} onChange={e => setBookData({...bookData, author: e.target.value})} placeholder="Author" /></div>
+                  <div className="space-y-2"><Label>ISBN Code</Label><Input value={bookData.isbn} onChange={e => setBookData({...bookData, isbn: e.target.value})} placeholder="ISBN" /></div>
+                  <div className="space-y-2"><Label>Quantity</Label><Input type="number" min="1" required value={bookData.quantity} onChange={e => setBookData({...bookData, quantity: e.target.value})} /></div>
+                  <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">Add Book</Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Issue Book Form */}
-          <Card className="border-slate-100 shadow-sm">
+          <Card className={`border-slate-100 shadow-sm ${(role === "School Admin" || role === "Super Admin" || role === "Teacher") ? "lg:col-span-2" : "lg:col-span-3"}`}>
             <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <BookUp2 className="w-5 h-5 text-purple-600" /> Issue Book to Student
-              </CardTitle>
+              <CardTitle className="text-lg font-bold">Library Book Catalog</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <form onSubmit={handleIssueBook} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Select Book</Label>
-                  <Select value={issueData.book_id || ""} onValueChange={(val) => setIssueData({...issueData, book_id: val})}>
-                    <SelectTrigger><SelectValue placeholder="-- Choose Book --" /></SelectTrigger>
-                    <SelectContent>
-                      {books.map(b => <SelectItem key={b.id} value={b.id.toString()}>{b.title} (Available: {b.available_copies})</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Select Student</Label>
-                    <Select value={issueData.student_id || ""} onValueChange={(val) => setIssueData({...issueData, student_id: val})}>
-                      <SelectTrigger><SelectValue placeholder="-- Student --" /></SelectTrigger>
-                      <SelectContent>
-                        {students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.admission_no} - {s.first_name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Due Date</Label>
-                    <Input type="date" value={issueData.due_date} onChange={(e) => setIssueData({...issueData, due_date: e.target.value})} required />
-                  </div>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <Button type="submit" disabled={loading || !issueData.book_id} className="bg-purple-600 hover:bg-purple-700">
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <BookUp2 className="w-4 h-4 mr-2" />} Issue Book
-                  </Button>
-                </div>
-              </form>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow><TableHead className="px-6 py-3">Book Title & Author</TableHead><TableHead className="px-6 py-3">ISBN</TableHead><TableHead className="px-6 py-3 text-center">Copies</TableHead><TableHead className="px-6 py-3 text-right">Action</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {books.map(b => (
+                    <TableRow key={b.id}>
+                      <TableCell className="px-6 py-4"><p className="font-bold text-slate-800">{b.title}</p><p className="text-xs text-slate-500">By {b.author}</p></TableCell>
+                      <TableCell className="px-6 py-4 text-xs font-mono text-slate-600">{b.isbn || 'N/A'}</TableCell>
+                      <TableCell className="px-6 py-4 text-center font-bold text-blue-600">{b.quantity}</TableCell>
+                      <TableCell className="px-6 py-4 text-right">
+                        {(role === "School Admin" || role === "Super Admin") && (
+                          <Button size="sm" variant="ghost" onClick={() => deleteBook(b.id)} className="text-red-500 hover:bg-red-50 h-8 w-8 p-0"><Trash2 className="w-4 h-4"/></Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {books.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-slate-400">No books found in catalog.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Book Issues Record Table */}
-      <Card className="border-slate-100 shadow-sm">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-          <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Library className="w-5 h-5 text-indigo-600" /> Issued Books Record
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead className="px-6 py-3">Book Title</TableHead>
-                <TableHead className="px-6 py-3">Student Info</TableHead>
-                <TableHead className="px-6 py-3">Issue Date</TableHead>
-                <TableHead className="px-6 py-3">Due Date</TableHead>
-                <TableHead className="px-6 py-3">Status</TableHead>
-                {(role === "School Admin" || role === "Super Admin") && <TableHead className="px-6 py-3 text-right">Action</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {issuedBooks.map((issue) => (
-                <TableRow key={issue.id}>
-                  <TableCell className="px-6 py-4 font-bold text-slate-800">{issue.books?.title}</TableCell>
-                  <TableCell className="px-6 py-4">
-                    <span className="font-semibold">{issue.students?.first_name} {issue.students?.last_name}</span>
-                    <span className="block text-xs text-slate-500">ID: {issue.students?.admission_no}</span>
-                  </TableCell>
-                  <TableCell className="px-6 py-4 text-slate-600">{new Date(issue.issue_date).toLocaleDateString()}</TableCell>
-                  <TableCell className="px-6 py-4 text-slate-600 font-medium">{new Date(issue.due_date).toLocaleDateString()}</TableCell>
-                  <TableCell className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${issue.status === 'Returned' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {issue.status}
-                    </span>
-                  </TableCell>
-                  {(role === "School Admin" || role === "Super Admin") && (
-                    <TableCell className="px-6 py-4 text-right">
-                      {issue.status === 'Issued' ? (
-                        <Button onClick={() => handleReturnBook(issue.id, issue.book_id)} size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-8">
-                          Mark Returned
-                        </Button>
-                      ) : (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 ml-auto" />
-                      )}
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-              {issuedBooks.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-400">No books issued yet.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {activeTab === "ISSUED" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {(role === "School Admin" || role === "Super Admin" || role === "Teacher") && (
+            <Card className="border-slate-100 shadow-sm lg:col-span-1 h-fit border-t-4 border-t-emerald-500">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+                <CardTitle className="text-lg font-bold flex items-center gap-2"><BookmarkCheck className="w-5 h-5 text-emerald-600"/> Issue Book to Student</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form onSubmit={handleIssueBook} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Select Book</Label>
+                    <Select value={issueData.book_id || undefined} onValueChange={(val) => setIssueData({...issueData, book_id: val || ""})}>
+                      <SelectTrigger><SelectValue placeholder="-- Book --"/></SelectTrigger>
+                      <SelectContent>{books.map(b => <SelectItem key={b.id} value={b.id.toString()}>{b.title}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Select Student</Label>
+                    <Select value={issueData.student_id || undefined} onValueChange={(val) => setIssueData({...issueData, student_id: val || ""})}>
+                      <SelectTrigger><SelectValue placeholder="-- Student --"/></SelectTrigger>
+                      <SelectContent>{students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.first_name} {s.last_name} ({s.admission_no})</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Return Due Date</Label>
+                    <Input type="date" required value={issueData.due_date} onChange={e => setIssueData({...issueData, due_date: e.target.value})} />
+                  </div>
+                  <Button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700">Issue Book</Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className={`border-slate-100 shadow-sm ${(role === "School Admin" || role === "Super Admin" || role === "Teacher") ? "lg:col-span-2" : "lg:col-span-3"}`}>
+            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-lg font-bold">Issued Books History</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow><TableHead className="px-6 py-3">Book Details</TableHead><TableHead className="px-6 py-3">Student Info</TableHead><TableHead className="px-6 py-3">Due Date</TableHead><TableHead className="px-6 py-3 text-right">Status / Action</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {issuedBooks.map(ib => (
+                    <TableRow key={ib.id}>
+                      <TableCell className="px-6 py-4"><p className="font-bold text-slate-800">{ib.books?.title}</p><p className="text-xs text-slate-500">Author: {ib.books?.author}</p></TableCell>
+                      <TableCell className="px-6 py-4"><p className="font-semibold text-slate-800">{ib.students?.first_name} {ib.students?.last_name}</p><p className="text-xs text-slate-500">ID: {ib.students?.admission_no}</p></TableCell>
+                      <TableCell className="px-6 py-4 text-xs font-bold text-red-500">{ib.due_date}</TableCell>
+                      <TableCell className="px-6 py-4 text-right">
+                        {ib.status === 'Issued' ? (
+                          <Button size="sm" onClick={() => handleReturnBook(ib.id)} className="bg-emerald-600 hover:bg-emerald-700 h-8 text-xs">Mark Returned</Button>
+                        ) : (
+                          <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">Returned</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {issuedBooks.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-slate-400">No books currently issued.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
