@@ -16,261 +16,80 @@ export default function CertificatesPage() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [docType, setDocType] = useState("ID_CARD");
   const [photoUrl, setPhotoUrl] = useState("");
-
-  // Settings State (ডাইনামিক নাম এবং বছরের জন্য)
   const [schoolName, setSchoolName] = useState("School ERP");
   const [academicYear, setAcademicYear] = useState("2026-2027");
 
-  useEffect(() => {
-    setRole(localStorage.getItem("userRole") || "");
-    fetchStudents();
-    fetchSchoolSettings();
-  }, []);
+  useEffect(() => { setRole(localStorage.getItem("userRole") || ""); fetchStudents(); fetchSchoolSettings(); }, []);
 
-  // ডাটাবেস থেকে স্কুলের সেটিংস নিয়ে আসা
   const fetchSchoolSettings = async () => {
     const { data } = await supabase.from("school_settings").select("*").eq("id", 1).single();
-    if (data) {
-      setSchoolName(data.institution_name);
-      setAcademicYear(data.academic_year);
-    }
+    if (data) { setSchoolName(data.institution_name); setAcademicYear(data.academic_year); }
   };
 
   const fetchStudents = async () => {
-    const { data } = await supabase
-      .from("students")
-      .select("*, classes(class_name), sections(section_name)")
-      .order("first_name", { ascending: true });
+    const { data } = await supabase.from("students").select("*, classes(class_name), sections(section_name)").order("first_name", { ascending: true });
     if (data) setStudents(data);
   };
 
   const handleStudentSelect = (studentId: string) => {
     const student = students.find((s) => s.id.toString() === studentId);
-    setSelectedStudent(student);
-    setPhotoUrl(student?.photo_url || "");
+    setSelectedStudent(student); setPhotoUrl(student?.photo_url || "");
   };
 
   const handlePhotoUpdate = async () => {
     if (!selectedStudent) return;
-    const { error } = await supabase
-      .from("students")
-      .update({ photo_url: photoUrl })
-      .eq("id", selectedStudent.id);
-
-    if (!error) {
-      toast.success("Student photo updated successfully!");
-      setSelectedStudent({ ...selectedStudent, photo_url: photoUrl });
-      fetchStudents();
-    } else {
-      toast.error(error.message);
-    }
+    const { error } = await supabase.from("students").update({ photo_url: photoUrl }).eq("id", selectedStudent.id);
+    if (!error) { toast.success("Photo updated!"); setSelectedStudent({ ...selectedStudent, photo_url: photoUrl }); fetchStudents(); }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  if (role !== "School Admin" && role !== "Super Admin" && role !== "Principal") {
-    return <div className="p-8 text-center text-red-500 font-bold">Access Denied. Admins only.</div>;
-  }
+  if (role !== "School Admin" && role !== "Super Admin" && role !== "Principal") return <div className="p-8 text-center text-red-500 font-bold">Access Denied.</div>;
 
   return (
     <div className="space-y-8 print:m-0 print:p-0">
-      <div className="print:hidden">
-        <h2 className="text-3xl font-bold text-slate-800">Document & Certificate Generator</h2>
-        <p className="text-slate-500 mt-1">Generate ID cards, Admit cards, and official certificates for students.</p>
-      </div>
+      <div className="print:hidden"><h2 className="text-3xl font-bold text-slate-800">Document Generator</h2></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Controls Section */}
         <Card className="border-slate-100 shadow-sm print:hidden lg:col-span-1 h-fit">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-            <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <FileBadge className="w-5 h-5 text-blue-600" /> Document Settings
-            </CardTitle>
-          </CardHeader>
+          <CardHeader className="border-b border-slate-100 bg-slate-50/50"><CardTitle className="text-lg font-bold">Settings</CardTitle></CardHeader>
           <CardContent className="p-6 space-y-6">
-            <div className="space-y-2">
-              <Label>Document Type</Label>
-              <Select value={docType || ""} onValueChange={setDocType}>
+            <div className="space-y-2"><Label>Document Type</Label>
+              <Select value={docType || ""} onValueChange={(val) => setDocType(val || "")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ID_CARD">Student ID Card</SelectItem>
-                  <SelectItem value="ADMIT_CARD">Examination Admit Card</SelectItem>
-                  <SelectItem value="TC">Transfer Certificate (TC)</SelectItem>
-                </SelectContent>
+                <SelectContent><SelectItem value="ID_CARD">ID Card</SelectItem><SelectItem value="ADMIT_CARD">Admit Card</SelectItem><SelectItem value="TC">Transfer Certificate</SelectItem></SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label>Select Student</Label>
-              <Select value={selectedStudent ? selectedStudent.id.toString() : ""} onValueChange={handleStudentSelect}>
+            <div className="space-y-2"><Label>Select Student</Label>
+              <Select value={selectedStudent ? selectedStudent.id.toString() : ""} onValueChange={(val) => handleStudentSelect(val || "")}>
                 <SelectTrigger><SelectValue placeholder="-- Choose Student --" /></SelectTrigger>
-                <SelectContent>
-                  {students.map((s) => (
-                    <SelectItem key={s.id} value={s.id.toString()}>
-                      {s.admission_no} - {s.first_name} {s.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectContent>{students.map((s) => (<SelectItem key={s.id} value={s.id.toString()}>{s.first_name}</SelectItem>))}</SelectContent>
               </Select>
             </div>
-
             {selectedStudent && (
               <div className="space-y-2 pt-2 border-t border-slate-100">
-                <Label>Student Photo (Image URL)</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    value={photoUrl} 
-                    onChange={(e) => setPhotoUrl(e.target.value)} 
-                    placeholder="Paste image link here..." 
-                  />
-                  <Button onClick={handlePhotoUpdate} size="sm" className="bg-blue-600 hover:bg-blue-700">Save</Button>
-                </div>
-                <p className="text-[11px] text-slate-400">Tip: Paste any direct image link (e.g. from Imgur or Google Drive).</p>
+                <Label>Student Photo (URL)</Label>
+                <div className="flex gap-2"><Input value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} /><Button onClick={handlePhotoUpdate} size="sm">Save</Button></div>
               </div>
             )}
-
-            <Button 
-              onClick={handlePrint} 
-              disabled={!selectedStudent} 
-              className="w-full bg-slate-900 hover:bg-slate-800 mt-4"
-            >
-              <Printer className="w-4 h-4 mr-2" /> Print Document
-            </Button>
+            <Button onClick={() => window.print()} disabled={!selectedStudent} className="w-full bg-slate-900 mt-4"><Printer className="w-4 h-4 mr-2" /> Print</Button>
           </CardContent>
         </Card>
 
-        {/* Document Preview Section */}
         <div className="lg:col-span-2 flex justify-center items-start">
           {!selectedStudent ? (
-            <div className="text-center py-20 text-slate-400 print:hidden w-full border-2 border-dashed border-slate-200 rounded-2xl">
-              <IdCard className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-              <p>Select a student to preview the document.</p>
-            </div>
+            <div className="text-center py-20 text-slate-400 print:hidden w-full border-2 border-dashed border-slate-200 rounded-2xl">Select a student</div>
           ) : (
             <div className="w-full flex justify-center">
-              
-              {/* ID CARD TEMPLATE */}
               {docType === "ID_CARD" && (
                 <div className="w-[350px] h-[550px] bg-white border-2 border-blue-600 rounded-2xl shadow-xl overflow-hidden relative print:shadow-none print:border-blue-600">
                   <div className="bg-blue-600 h-32 flex flex-col items-center justify-center text-white text-center px-4 rounded-b-[50%]">
-                    <GraduationCap className="w-10 h-10 mb-1" />
-                    <h3 className="font-bold text-lg leading-tight uppercase">{schoolName}</h3>
-                  </div>
-                  <div className="absolute top-24 left-1/2 -translate-x-1/2 w-24 h-24 bg-white rounded-full border-4 border-white shadow-md overflow-hidden flex items-center justify-center">
-                    {selectedStudent.photo_url ? (
-                      <img src={selectedStudent.photo_url} alt="Student" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400 font-bold text-2xl">
-                        {selectedStudent.first_name.charAt(0)}{selectedStudent.last_name.charAt(0)}
-                      </div>
-                    )}
+                    <h3 className="font-bold text-lg uppercase">{schoolName}</h3>
                   </div>
                   <div className="pt-20 pb-6 px-6 text-center space-y-4">
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-800 uppercase">{selectedStudent.first_name} {selectedStudent.last_name}</h2>
-                      <p className="text-blue-600 font-semibold tracking-widest mt-1">STUDENT</p>
-                    </div>
-                    <div className="text-left bg-slate-50 p-4 rounded-xl space-y-2 text-sm border border-slate-100">
-                      <p><span className="font-bold text-slate-600">ID No:</span> {selectedStudent.admission_no}</p>
-                      <p><span className="font-bold text-slate-600">Class:</span> {selectedStudent.classes?.class_name}</p>
-                      <p><span className="font-bold text-slate-600">Section:</span> {selectedStudent.sections?.section_name}</p>
-                      <p><span className="font-bold text-slate-600">Blood Group:</span> {selectedStudent.blood_group || "N/A"}</p>
-                      <p><span className="font-bold text-slate-600">Emergency:</span> {selectedStudent.parent_phone}</p>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-0 w-full bg-slate-900 text-white text-center py-2 text-xs">
-                    Valid for Academic Year {academicYear}
+                    <h2 className="text-2xl font-bold uppercase">{selectedStudent.first_name}</h2>
+                    <p className="text-sm">ID: {selectedStudent.admission_no}</p>
                   </div>
                 </div>
               )}
-
-              {/* ADMIT CARD TEMPLATE */}
-              {docType === "ADMIT_CARD" && (
-                <div className="w-full max-w-2xl bg-white border border-slate-300 p-8 shadow-xl print:shadow-none print:border-none">
-                  <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
-                    <GraduationCap className="w-12 h-12 mx-auto text-slate-800 mb-2" />
-                    <h1 className="text-2xl font-bold uppercase tracking-wider">{schoolName}</h1>
-                    <p className="text-sm font-semibold mt-1 bg-slate-800 text-white inline-block px-4 py-1 rounded-full">EXAMINATION ADMIT CARD {academicYear}</p>
-                  </div>
-                  <div className="flex justify-between items-start mb-8">
-                    <div className="space-y-3 text-sm">
-                      <p><span className="font-bold inline-block w-32">Student Name:</span> {selectedStudent.first_name} {selectedStudent.last_name}</p>
-                      <p><span className="font-bold inline-block w-32">Admission No:</span> {selectedStudent.admission_no}</p>
-                      <p><span className="font-bold inline-block w-32">Class & Section:</span> {selectedStudent.classes?.class_name} ({selectedStudent.sections?.section_name})</p>
-                      <p><span className="font-bold inline-block w-32">Guardian Name:</span> {selectedStudent.parent_name}</p>
-                    </div>
-                    <div className="w-24 h-32 bg-slate-100 border-2 border-dashed border-slate-300 overflow-hidden flex items-center justify-center text-xs text-slate-400 text-center">
-                      {selectedStudent.photo_url ? (
-                        <img src={selectedStudent.photo_url} alt="Student" className="w-full h-full object-cover" />
-                      ) : (
-                        "Paste Photo Here"
-                      )}
-                    </div>
-                  </div>
-                  <div className="border border-slate-300 p-4 mb-16 text-sm text-slate-600 bg-slate-50">
-                    <h4 className="font-bold text-slate-800 mb-2">Examination Rules:</h4>
-                    <ul className="list-disc pl-5 space-y-1">
-                      <li>Bring this admit card to every examination.</li>
-                      <li>Electronic devices are strictly prohibited inside the exam hall.</li>
-                      <li>Students must report 30 minutes before the exam starts.</li>
-                    </ul>
-                  </div>
-                  <div className="flex justify-between items-end px-10 mt-12">
-                    <div className="text-center">
-                      <div className="w-32 border-b border-slate-800 mb-2"></div>
-                      <p className="text-xs font-bold uppercase">Student Signature</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-32 border-b border-slate-800 mb-2"></div>
-                      <p className="text-xs font-bold uppercase">Principal Signature</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TRANSFER CERTIFICATE TEMPLATE */}
-              {docType === "TC" && (
-                <div className="w-full max-w-2xl bg-white border-[10px] border-double border-slate-200 p-10 shadow-xl text-center print:shadow-none print:border-slate-800">
-                  <GraduationCap className="w-16 h-16 mx-auto text-blue-800 mb-4" />
-                  <h1 className="text-3xl font-extrabold text-blue-900 uppercase tracking-widest mb-1">{schoolName}</h1>
-                  <p className="text-sm text-slate-500 mb-8">Academic Session: {academicYear}</p>
-                  
-                  <h2 className="text-xl font-bold bg-blue-100 text-blue-800 py-2 px-8 inline-block rounded-full mb-10 border border-blue-200">TRANSFER CERTIFICATE</h2>
-                  
-                  <div className="text-left space-y-6 text-lg leading-relaxed text-slate-700">
-                    <p>
-                      This is to certify that <span className="font-bold uppercase border-b border-slate-400 px-2">{selectedStudent.first_name} {selectedStudent.last_name}</span>, 
-                      son/daughter of <span className="font-bold border-b border-slate-400 px-2">{selectedStudent.parent_name}</span>, 
-                      was a bona fide student of this institution.
-                    </p>
-                    <p>
-                      He/She was studying in Class <span className="font-bold border-b border-slate-400 px-2">{selectedStudent.classes?.class_name}</span> 
-                      (Section: <span className="font-bold border-b border-slate-400 px-2">{selectedStudent.sections?.section_name}</span>) 
-                      under Admission No <span className="font-bold border-b border-slate-400 px-2">{selectedStudent.admission_no}</span>.
-                    </p>
-                    <p>
-                      His/Her date of birth, according to the school register, is <span className="font-bold border-b border-slate-400 px-2">{new Date(selectedStudent.dob).toLocaleDateString()}</span>.
-                    </p>
-                    <p>
-                      His/Her conduct and character have been <span className="font-bold border-b border-slate-400 px-2">GOOD</span> during the period of study in this school. All school dues have been paid.
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-between items-end mt-24">
-                    <div className="text-left">
-                      <p className="font-bold">Date: {new Date().toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-40 border-b border-slate-800 mb-2"></div>
-                      <p className="text-sm font-bold uppercase">Principal Signature & Seal</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
             </div>
           )}
         </div>

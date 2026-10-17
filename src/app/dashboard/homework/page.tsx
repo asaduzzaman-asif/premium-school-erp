@@ -104,7 +104,7 @@ export default function HomeworkPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Class</Label>
-                  <Select value={formData.class_id} onValueChange={(val) => setFormData({ ...formData, class_id: val })}>
+                  <Select value={formData.class_id || ""} onValueChange={(val) => setFormData({ ...formData, class_id: val })}>
                     <SelectTrigger><SelectValue placeholder="Choose class" /></SelectTrigger>
                     <SelectContent>
                       {classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}
@@ -113,7 +113,7 @@ export default function HomeworkPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Section</Label>
-                  <Select value={formData.section_id} onValueChange={(val) => setFormData({ ...formData, section_id: val })} disabled={!formData.class_id}>
+                  <Select value={formData.section_id || ""} onValueChange={(val) => setFormData({ ...formData, section_id: val })}>
                     <SelectTrigger><SelectValue placeholder="Choose section" /></SelectTrigger>
                     <SelectContent>
                       {sections.filter(s => s.class_id.toString() === formData.class_id).map(s => (
@@ -124,7 +124,7 @@ export default function HomeworkPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Subject</Label>
-                  <Select value={formData.subject_id} onValueChange={(val) => setFormData({ ...formData, subject_id: val })} disabled={!formData.class_id}>
+                  <Select value={formData.subject_id || ""} onValueChange={(val) => setFormData({ ...formData, subject_id: val })}>
                     <SelectTrigger><SelectValue placeholder="Choose subject" /></SelectTrigger>
                     <SelectContent>
                       {subjects.filter(s => s.class_id.toString() === formData.class_id).map(s => (

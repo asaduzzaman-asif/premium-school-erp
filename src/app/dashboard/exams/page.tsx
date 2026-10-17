@@ -208,7 +208,7 @@ export default function ExamsPage() {
               <form onSubmit={handleAddExam} className="space-y-4">
                 <div className="space-y-2"><Label>Exam Name</Label><Input value={examData.exam_name} onChange={(e) => setExamData({...examData, exam_name: e.target.value})} required placeholder="e.g. Half Yearly Exam 2026" /></div>
                 <div className="space-y-2"><Label>Exam Type</Label>
-                  <Select value={examData.exam_type} onValueChange={(val) => setExamData({...examData, exam_type: val})}>
+                  <Select value={examData.exam_type || ""} onValueChange={(val) => setExamData({...examData, exam_type: val || ""})}>
                     <SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Terminal">Terminal</SelectItem><SelectItem value="Monthly">Monthly Test</SelectItem><SelectItem value="Model Test">Model Test</SelectItem><SelectItem value="Board">Board Exam</SelectItem></SelectContent>
                   </Select>
                 </div>
@@ -255,21 +255,21 @@ export default function ExamsPage() {
         <div className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 print:hidden flex-wrap">
           <div className="space-y-1 w-full md:w-48">
             <Label>Select Exam</Label>
-            <Select value={filterData.exam_id} onValueChange={(val) => setFilterData({...filterData, exam_id: val})}>
+            <Select value={filterData.exam_id || ""} onValueChange={(val) => setFilterData({...filterData, exam_id: val || ""})}>
               <SelectTrigger><SelectValue placeholder="-- Exam --" /></SelectTrigger>
               <SelectContent>{exams.map((e) => (<SelectItem key={e.id} value={e.id.toString()}>{e.exam_name}</SelectItem>))}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1 w-full md:w-32">
             <Label>Select Class</Label>
-            <Select value={filterData.class_id} onValueChange={(val) => setFilterData({...filterData, class_id: val})}>
+            <Select value={filterData.class_id || ""} onValueChange={(val) => setFilterData({...filterData, class_id: val || ""})}>
               <SelectTrigger><SelectValue placeholder="-- Class --" /></SelectTrigger>
               <SelectContent>{classes.map((c) => (<SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>))}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1 w-full md:w-32">
             <Label>Select Section</Label>
-            <Select value={filterData.section_id} onValueChange={(val) => setFilterData({...filterData, section_id: val})}>
+            <Select value={filterData.section_id || ""} onValueChange={(val) => setFilterData({...filterData, section_id: val || ""})}>
               <SelectTrigger><SelectValue placeholder="-- Sec --" /></SelectTrigger>
               <SelectContent>{sections.filter(s => s.class_id.toString() === filterData.class_id).map((s) => (<SelectItem key={s.id} value={s.id.toString()}>{s.section_name}</SelectItem>))}</SelectContent>
             </Select>
@@ -277,7 +277,7 @@ export default function ExamsPage() {
           {activeTab === "MARKS" && (
             <div className="space-y-1 w-full md:w-48">
               <Label>Select Subject</Label>
-              <Select value={filterData.subject_id} onValueChange={(val) => setFilterData({...filterData, subject_id: val})}>
+              <Select value={filterData.subject_id || ""} onValueChange={(val) => setFilterData({...filterData, subject_id: val || ""})}>
                 <SelectTrigger><SelectValue placeholder="-- Subject --" /></SelectTrigger>
                 <SelectContent>{subjects.filter(s => s.class_id.toString() === filterData.class_id).map((s) => (<SelectItem key={s.id} value={s.id.toString()}>{s.subject_name}</SelectItem>))}</SelectContent>
               </Select>

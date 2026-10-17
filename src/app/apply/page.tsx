@@ -128,7 +128,7 @@ export default function OnlineAdmissionPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-slate-700">Gender <span className="text-red-500">*</span></Label>
-                    <Select value={formData.gender} onValueChange={(val) => setFormData({ ...formData, gender: val })} required>
+                    <Select value={formData.class_id || ""} onValueChange={(val) => setFormData({...formData, class_id: val || ""})}>
                       <SelectTrigger className="bg-white"><SelectValue placeholder="Select Gender" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Male">Male</SelectItem>

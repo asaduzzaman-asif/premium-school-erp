@@ -85,7 +85,9 @@ export default function StudentsPage() {
             const uniqueClasses: any[] = [];
             const map = new Map();
             assignments.forEach(item => {
-              if(!map.has(item.class_id)){ map.set(item.class_id, true); uniqueClasses.push({ id: item.class_id, name: item.classes?.class_name }); }
+              if(!map.has(item.class_id)){ map.set(item.class_id, true); // আগের কোড: uniqueClasses.push({ id: item.class_id, name: item.classes?.class_name });
+// নতুন কোড:
+uniqueClasses.push({ id: item.class_id, name: (item.classes as any)?.class_name });; }
             });
             setMyClasses(uniqueClasses);
 
@@ -233,7 +235,7 @@ export default function StudentsPage() {
           {userRole === "Teacher" && myClasses.length > 0 && (
             <div className="w-full sm:w-48 bg-white p-1 rounded-md shadow-sm border border-slate-200 flex items-center">
               <Filter className="w-4 h-4 text-slate-400 ml-2 mr-1" />
-              <Select value={filterClassId} onValueChange={setFilterClassId}>
+              <Select value={filterClassId || "ALL"} onValueChange={(val) => setFilterClassId(val || "ALL")}>
                 <SelectTrigger className="border-0 shadow-none focus:ring-0 text-sm font-semibold h-8"><SelectValue placeholder="Class" /></SelectTrigger>
                 <SelectContent><SelectItem value="ALL">All Classes</SelectItem>{myClasses.map((c: any) => (<SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>))}</SelectContent>
               </Select>
@@ -264,14 +266,14 @@ export default function StudentsPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Assign Class</Label>
-                  <Select value={formData.class_id || ""} onValueChange={(val) => setFormData({ ...formData, class_id: val })}>
+                  <Select value={formData.shift || ""} onValueChange={(val) => setFormData({ ...formData, shift: val })}>
                     <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
                     <SelectContent>{classes.map(cls => <SelectItem key={cls.id} value={cls.id.toString()}>{cls.class_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Assign Section</Label>
-                  <Select value={formData.section_id || ""} onValueChange={(val) => setFormData({ ...formData, section_id: val })} disabled={!formData.class_id}>
+                  <Select value={filterClassId || ""} onValueChange={setFilterClassId}>
                     <SelectTrigger><SelectValue placeholder="Select Section" /></SelectTrigger>
                     <SelectContent>{filteredSections.map(sec => <SelectItem key={sec.id} value={sec.id.toString()}>Section {sec.section_name}</SelectItem>)}</SelectContent>
                   </Select>

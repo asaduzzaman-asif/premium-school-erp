@@ -165,7 +165,7 @@ export default function LibraryPage() {
               <form onSubmit={handleIssueBook} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Select Book</Label>
-                  <Select value={issueData.book_id} onValueChange={(val) => setIssueData({...issueData, book_id: val})}>
+                  <Select value={issueData.book_id || ""} onValueChange={(val) => setIssueData({...issueData, book_id: val})}>
                     <SelectTrigger><SelectValue placeholder="-- Choose Book --" /></SelectTrigger>
                     <SelectContent>
                       {books.map(b => <SelectItem key={b.id} value={b.id.toString()}>{b.title} (Available: {b.available_copies})</SelectItem>)}
@@ -175,7 +175,7 @@ export default function LibraryPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Select Student</Label>
-                    <Select value={issueData.student_id} onValueChange={(val) => setIssueData({...issueData, student_id: val})}>
+                    <Select value={issueData.student_id || ""} onValueChange={(val) => setIssueData({...issueData, student_id: val})}>
                       <SelectTrigger><SelectValue placeholder="-- Student --" /></SelectTrigger>
                       <SelectContent>
                         {students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.admission_no} - {s.first_name}</SelectItem>)}

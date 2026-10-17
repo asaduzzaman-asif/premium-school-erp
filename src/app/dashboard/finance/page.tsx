@@ -229,7 +229,7 @@ export default function FinancePage() {
               <form onSubmit={submitPayment} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Payment Method</Label>
-                  <Select value={payInput.method} onValueChange={(val) => setPayInput({...payInput, method: val})}>
+                  <Select value={payInput.method || ""} onValueChange={(val) => setPayInput({...payInput, method: val || ""})}>
                     <SelectTrigger><SelectValue/></SelectTrigger>
                     <SelectContent><SelectItem value="bKash">bKash Mobile Banking</SelectItem><SelectItem value="Nagad">Nagad</SelectItem><SelectItem value="Bank Transfer">Bank Transfer</SelectItem><SelectItem value="Cash">Cash (Counter)</SelectItem></SelectContent>
                   </Select>
@@ -265,12 +265,12 @@ export default function FinancePage() {
             <CardContent className="p-6">
               <form onSubmit={handleAddStructure} className="space-y-4">
                 <div className="space-y-2"><Label>Select Class</Label>
-                  <Select value={structData.class_id} onValueChange={(val) => setStructData({...structData, class_id: val})}>
+                  <Select value={structData.class_id || ""} onValueChange={(val) => setStructData({...structData, class_id: val || ""})}>
                     <SelectTrigger><SelectValue placeholder="Class"/></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2"><Label>Fee Type</Label>
-                  <Select value={structData.fee_type} onValueChange={(val) => setStructData({...structData, fee_type: val})}>
+                  <Select value={structData.fee_type || ""} onValueChange={(val) => setStructData({...structData, fee_type: val || ""})}>
                     <SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Admission Fee">Admission Fee</SelectItem><SelectItem value="Tuition Fee">Monthly Tuition Fee</SelectItem><SelectItem value="Exam Fee">Exam Fee</SelectItem><SelectItem value="Other Fees">Other Fees</SelectItem></SelectContent>
                   </Select>
                 </div>
@@ -310,17 +310,17 @@ export default function FinancePage() {
               <CardContent className="p-6">
                 <form onSubmit={handleGenerateInvoice} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 items-end">
                   <div className="space-y-2"><Label>Class</Label>
-                    <Select value={invoiceData.class_id} onValueChange={handleClassChange}>
+                    <Select value={invoiceData.class_id || ""} onValueChange={(val) => handleClassChange(val || "")}>
                       <SelectTrigger><SelectValue placeholder="Class"/></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2"><Label>Student</Label>
-                    <Select value={invoiceData.student_id} onValueChange={(val) => setInvoiceData({...invoiceData, student_id: val})}>
+                    <Select value={invoiceData.student_id || ""} onValueChange={(val) => setInvoiceData({...invoiceData, student_id: val || ""})}>
                       <SelectTrigger><SelectValue placeholder="Student"/></SelectTrigger><SelectContent>{students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.first_name} {s.last_name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2"><Label>Fee Type</Label>
-                    <Select value={invoiceData.fee_type} onValueChange={handleTypeChange}>
+                    <Select value={invoiceData.fee_type || ""} onValueChange={(val) => handleTypeChange(val || "")}>
                       <SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Admission Fee">Admission Fee</SelectItem><SelectItem value="Tuition Fee">Tuition Fee</SelectItem><SelectItem value="Exam Fee">Exam Fee</SelectItem><SelectItem value="Other Fees">Other Fees</SelectItem></SelectContent>
                     </Select>
                   </div>

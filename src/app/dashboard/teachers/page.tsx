@@ -171,7 +171,7 @@ export default function TeachersPage() {
                   <div className="space-y-2"><Label>Last Name</Label><Input name="last_name" value={formData.last_name} onChange={handleInputChange} required /></div>
                   <div className="space-y-2">
                     <Label>Designation</Label>
-                    <Select value={formData.designation} onValueChange={(val) => setFormData({ ...formData, designation: val })}>
+                    <Select value={formData.designation || ""} onValueChange={(val) => setFormData({ ...formData, designation: val })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent><SelectItem value="Teacher">Senior Teacher</SelectItem><SelectItem value="Accountant">Accountant</SelectItem><SelectItem value="Staff">Office Staff</SelectItem></SelectContent>
                     </Select>
@@ -255,7 +255,7 @@ export default function TeachersPage() {
               <form onSubmit={handlePayrollSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Select Employee</Label>
-                  <Select value={payrollData.teacher_id} onValueChange={(val) => setPayrollData({...payrollData, teacher_id: val})}>
+                 <Select value={payrollData.teacher_id || ""} onValueChange={(val) => setPayrollData({...payrollData, teacher_id: val})}>
                     <SelectTrigger><SelectValue placeholder="-- Choose Staff --"/></SelectTrigger>
                     <SelectContent>
                       {staffList.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.first_name} {s.last_name} ({s.designation})</SelectItem>)}

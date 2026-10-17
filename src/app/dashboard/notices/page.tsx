@@ -159,12 +159,12 @@ export default function NoticesPage() {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2"><Label>Category</Label>
-                      <Select value={noticeData.notice_type} onValueChange={(val) => setNoticeData({...noticeData, notice_type: val})}>
+                      <Select value={noticeData.notice_type || ""} onValueChange={(val) => setNoticeData({...noticeData, notice_type: val})}>
                         <SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="General">General</SelectItem><SelectItem value="Exam">Exam Notice</SelectItem><SelectItem value="Holiday">Holiday</SelectItem><SelectItem value="Emergency">Emergency</SelectItem></SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2"><Label>Target Class</Label>
-                      <Select value={noticeData.target_class} onValueChange={(val) => setNoticeData({...noticeData, target_class: val})}>
+                      <Select value={noticeData.target_class || ""} onValueChange={(val) => setNoticeData({...noticeData, target_class: val})}>
                         <SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="All">School-wide (All)</SelectItem>{classes.map(c => <SelectItem key={c.id} value={c.class_name}>{c.class_name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
@@ -264,7 +264,7 @@ export default function NoticesPage() {
               <CardContent className="p-6">
                 <form onSubmit={requestMeeting} className="space-y-4">
                   <div className="space-y-2"><Label>Select Teacher</Label>
-                    <Select value={meetingData.teacher_id} onValueChange={(val) => setMeetingData({...meetingData, teacher_id: val})}>
+                    <Select value={meetingData.teacher_id || ""} onValueChange={(val) => setMeetingData({...meetingData, teacher_id: val})}>
                       <SelectTrigger><SelectValue placeholder="-- Teacher --"/></SelectTrigger>
                       <SelectContent>{teachers.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.first_name} {t.last_name}</SelectItem>)}</SelectContent>
                     </Select>
