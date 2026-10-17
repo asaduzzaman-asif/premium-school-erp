@@ -1,112 +1,207 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { 
-  LayoutDashboard, Users, UserCheck, BookOpen, 
-  FileText, LogOut, DollarSign, Settings, GraduationCap, 
-  Award, BellRing, UserPlus, Library, ClipboardList, FileBadge, Shield
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Users, UserCheck, DollarSign, BellRing, BookOpen, Award, User, Phone, GraduationCap, ShieldCheck, Clock } from "lucide-react";
 
-export default function Sidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
+export default function DashboardPage() {
   const [role, setRole] = useState("");
-  const [schoolName, setSchoolName] = useState("School ERP");
+  const [userName, setUserName] = useState("");
+  const [stats, setStats] = useState({ students: 0, teachers: 0, notices: 0 });
+  const [recentNotices, setRecentNotices] = useState<any[]>([]);
+  const [studentInfo, setStudentInfo] = useState<any>(null);
 
   useEffect(() => {
-    setRole(localStorage.getItem("userRole") || "");
-    fetchSchoolSettings();
+    const currentRole = localStorage.getItem("userRole") || "";
+    const currentUserName = localStorage.getItem("userName") || "";
+    setRole(currentRole);
+    setUserName(currentUserName);
+    fetchDashboardData(currentRole, currentUserName);
   }, []);
 
-  const fetchSchoolSettings = async () => {
-    const { data } = await supabase.from("school_settings").select("institution_name").eq("id", 1).single();
-    if (data) setSchoolName(data.institution_name);
+  const fetchDashboardData = async (currentRole: string, currentUserName: string) => {
+    const { count: sCount } = await supabase.from("students").select("*", { count: "exact", head: true });
+    const { count: tCount } = await supabase.from("teachers").select("*", { count: "exact", head: true });
+    const { count: nCount } = await supabase.from("notices").select("*", { count: "exact", head: true });
+    
+    setStats({ students: sCount || 0, teachers: tCount || 0, notices: nCount || 0 });
+
+    const { data: nData } = await supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(3);
+    if (nData) setRecentNotices(nData);
+
+    if (currentRole === "Student") {
+      const { data: userData } = await supabase.from("users").select("id, created_at").eq("username", currentUserName).single();
+      if (userData) {
+        const { data: sData } = await supabase.from("students").select("*, classes(class_name), sections(section_name)").eq("user_id", userData.id).single();
+        if (sData) setStudentInfo({ ...userData, ...sData });
+      }
+    }
   };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    router.push("/login");
-  };
-
-  let menus: any[] = [];
-
-  // Super Admin, School Admin এবং Principal এর জন্য একই মেনু
-  if (role === "School Admin" || role === "Super Admin" || role === "Principal") {
-    menus = [
-      { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-      { name: "Manage Admissions", path: "/dashboard/admissions", icon: UserPlus },
-      { name: "Academic Setup", path: "/dashboard/academic", icon: BookOpen },
-      { name: "Students", path: "/dashboard/students", icon: Users },
-      { name: "Teachers & Staff", path: "/dashboard/teachers", icon: UserCheck },
-      { name: "Attendance", path: "/dashboard/attendance", icon: FileText },
-      { name: "Homework", path: "/dashboard/homework", icon: ClipboardList },
-      { name: "Exams & Marks", path: "/dashboard/exams", icon: Award },
-      { name: "Certificates", path: "/dashboard/certificates", icon: FileBadge },
-      { name: "Notice Board", path: "/dashboard/notices", icon: BellRing }, 
-      { name: "Finance & Fees", path: "/dashboard/finance", icon: DollarSign },
-      { name: "Library", path: "/dashboard/library", icon: Library },
-      { name: "Assign Teachers", path: "/dashboard/assign-teacher", icon: BookOpen },
-      { name: "User Roles", path: "/dashboard/users", icon: Shield },
-      { name: "Settings", path: "/dashboard/settings", icon: Settings },
-    ];
-  } else if (role === "Teacher") {
-    menus = [
-      { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-      { name: "My Students", path: "/dashboard/students", icon: Users },
-      { name: "Take Attendance", path: "/dashboard/attendance", icon: FileText },
-      { name: "Homework", path: "/dashboard/homework", icon: ClipboardList },
-      { name: "Exams & Marks", path: "/dashboard/exams", icon: Award },
-      { name: "Notice Board", path: "/dashboard/notices", icon: BellRing }, 
-      { name: "Library", path: "/dashboard/library", icon: Library },
-    ];
-  } else if (role === "Accountant") {
-    menus = [
-      { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-      { name: "Finance & Fees", path: "/dashboard/finance", icon: DollarSign },
-      { name: "Notice Board", path: "/dashboard/notices", icon: BellRing }, 
-    ];
-  } else if (role === "Parent" || role === "Student") {
-    menus = [
-      { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-      { name: role === "Parent" ? "My Children" : "My Profile", path: "/dashboard/profile", icon: Users },
-      { name: "Homework", path: "/dashboard/homework", icon: ClipboardList },
-      { name: "Notice Board", path: "/dashboard/notices", icon: BellRing }, 
-      { name: "Library", path: "/dashboard/library", icon: Library },
-    ];
-  }
 
   return (
-    <div className="w-64 bg-slate-900 text-slate-300 h-screen flex flex-col justify-between border-r border-slate-800 transition-all duration-300 print:hidden">
+    <div className="space-y-8 max-w-6xl mx-auto">
       <div>
-        <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
-          <GraduationCap className="w-8 h-8 text-blue-500 mr-3 shrink-0" />
-          <span className="text-lg font-bold text-white tracking-wide truncate" title={schoolName}>{schoolName}</span>
-        </div>
-        
-        <div className="p-4 space-y-1 mt-4 overflow-y-auto max-h-[calc(100vh-140px)] scrollbar-hide">
-          <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Main Menu</p>
-          {menus.map((menu, index) => {
-            const Icon = menu.icon;
-            const isActive = pathname === menu.path;
-            
-            return (
-              <Link key={index} href={menu.path} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${ isActive ? "bg-blue-600 text-white shadow-md shadow-blue-900/20" : "hover:bg-slate-800 hover:text-white" }`}>
-                <Icon className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-400"}`} />
-                <span className="font-medium text-sm">{menu.name}</span>
-              </Link>
-            );
-          })}
-        </div>
+        <h2 className="text-3xl font-bold text-slate-800">Student Portal</h2>
+        <p className="text-slate-500 mt-1">Welcome back, <span className="font-semibold text-slate-700">{userName}</span>! Here is your personal academic overview.</p>
       </div>
 
-      <div className="p-4 border-t border-slate-800 bg-slate-900">
-        <button onClick={handleLogout} className="flex items-center justify-center gap-2 w-full bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white py-3 rounded-xl text-sm font-semibold transition-colors duration-200">
-          <LogOut className="w-4 h-4" /> Logout
-        </button>
-      </div>
+      {/* Student Specific View */}
+      {role === "Student" ? (
+        <div className="space-y-6">
+          
+          {/* Student Profile Top Banner Card */}
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
+            <div className="w-24 h-24 rounded-full border-4 border-white/30 bg-white text-blue-600 flex items-center justify-center text-3xl font-black shadow-lg shrink-0">
+              {userName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 text-center md:text-left space-y-1">
+              <h1 className="text-3xl font-black">
+                {studentInfo?.first_name ? `${studentInfo.first_name} ${studentInfo.last_name}` : userName}
+              </h1>
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-3 pt-1">
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Student
+                </span>
+                {studentInfo?.admission_no && (
+                  <span className="text-xs text-blue-100 font-medium">ID: {studentInfo.admission_no}</span>
+                )}
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-xl border border-white/20 text-center shrink-0">
+              <p className="text-xs text-blue-100 uppercase font-semibold">Attendance</p>
+              <p className="text-2xl font-black mt-0.5">75%</p>
+            </div>
+          </div>
+
+          {/* Student Personal & Academic Details Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <Card className="border-slate-100 shadow-sm">
+              <CardHeader className="border-b border-slate-50 bg-slate-50/50 pb-3">
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+                  <User className="w-5 h-5 text-blue-600" /> Academic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                  <span className="text-sm font-semibold text-slate-400">Class & Section</span>
+                  <span className="text-sm font-bold text-slate-700">{studentInfo?.classes?.class_name || "N/A"} ({studentInfo?.sections?.section_name || "N/A"})</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                  <span className="text-sm font-semibold text-slate-400">Class Roll</span>
+                  <span className="text-sm font-bold text-slate-700">{studentInfo?.roll_no || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                  <span className="text-sm font-semibold text-slate-400">Shift</span>
+                  <span className="text-sm font-bold text-slate-700">{studentInfo?.shift || "Morning"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-semibold text-slate-400">Guardian Name</span>
+                  <span className="text-sm font-bold text-slate-700">{studentInfo?.parent_name || "N/A"}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-100 shadow-sm">
+              <CardHeader className="border-b border-slate-50 bg-slate-50/50 pb-3">
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+                  <Phone className="w-5 h-5 text-emerald-600" /> Contact & Account
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                  <span className="text-sm font-semibold text-slate-400">Username</span>
+                  <span className="text-sm font-bold text-slate-700">{userName}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                  <span className="text-sm font-semibold text-slate-400">Guardian Phone</span>
+                  <span className="text-sm font-bold text-slate-700">{studentInfo?.parent_phone || "Not Provided"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-semibold text-slate-400">Account Created</span>
+                  <span className="text-sm font-bold text-slate-700">{studentInfo?.created_at ? new Date(studentInfo.created_at).toLocaleDateString() : "N/A"}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* Results & Fee Status */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="border-slate-100 shadow-sm">
+              <CardHeader className="border-b border-slate-50 bg-slate-50/50"><CardTitle className="text-lg font-bold flex items-center gap-2"><Award className="w-5 h-5 text-purple-600"/> Recent Exam Results</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader className="bg-slate-50"><TableRow><TableHead className="px-6 py-3">Exam</TableHead><TableHead className="px-6 py-3">Subject</TableHead><TableHead className="px-6 py-3 text-right">Marks</TableHead></TableRow></TableHeader>
+                  <TableBody><TableRow><TableCell colSpan={3} className="text-center py-8 text-slate-400 text-sm">No exam results published yet.</TableCell></TableRow></TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-100 shadow-sm">
+              <CardHeader className="border-b border-slate-50 bg-slate-50/50"><CardTitle className="text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-600"/> Fee Status</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader className="bg-slate-50"><TableRow><TableHead className="px-6 py-3">Month</TableHead><TableHead className="px-6 py-3">Amount</TableHead><TableHead className="px-6 py-3 text-right">Status</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="px-6 py-4 font-medium">January</TableCell>
+                      <TableCell className="px-6 py-4">৳ 500</TableCell>
+                      <TableCell className="px-6 py-4 text-right"><span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full text-xs font-bold">Paid</span></TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+
+        </div>
+      ) : (
+        /* Admin / Teacher Overview View (Ager Moto Thakbe) */
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <Card className="border-slate-100 shadow-sm border-t-4 border-t-blue-500">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div><p className="text-xs font-bold text-slate-400 uppercase">Total Students</p><h3 className="text-3xl font-black text-slate-800 mt-1">{stats.students}</h3></div>
+                <div className="p-4 bg-blue-50 rounded-2xl text-blue-600"><Users className="w-7 h-7"/></div>
+              </CardContent>
+            </Card>
+            <Card className="border-slate-100 shadow-sm border-t-4 border-t-emerald-500">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div><p className="text-xs font-bold text-slate-400 uppercase">Total Teachers</p><h3 className="text-3xl font-black text-slate-800 mt-1">{stats.teachers}</h3></div>
+                <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-600"><UserCheck className="w-7 h-7"/></div>
+              </CardContent>
+            </Card>
+            <Card className="border-slate-100 shadow-sm border-t-4 border-t-purple-500">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div><p className="text-xs font-bold text-slate-400 uppercase">Published Notices</p><h3 className="text-3xl font-black text-slate-800 mt-1">{stats.notices}</h3></div>
+                <div className="p-4 bg-purple-50 rounded-2xl text-purple-600"><BellRing className="w-7 h-7"/></div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-slate-100 shadow-sm">
+            <CardHeader className="border-b border-slate-50 bg-slate-50/50"><CardTitle className="text-lg font-bold">Recent Notice Board</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-slate-50"><TableRow><TableHead className="px-6 py-3">Title</TableHead><TableHead className="px-6 py-3">Category</TableHead><TableHead className="px-6 py-3 text-right">Date</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {recentNotices.map((n) => (
+                    <TableRow key={n.id}>
+                      <TableCell className="px-6 py-4 font-bold text-slate-800">{n.title}</TableCell>
+                      <TableCell className="px-6 py-4"><span className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded text-xs font-bold">{n.notice_type}</span></TableCell>
+                      <TableCell className="px-6 py-4 text-right text-xs text-slate-500">{new Date(n.created_at).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                  {recentNotices.length === 0 && <TableRow><TableCell colSpan={3} className="text-center py-8 text-slate-400">No notices found.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
