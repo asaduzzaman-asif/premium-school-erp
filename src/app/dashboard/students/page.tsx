@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, UserPlus, Users, UserCircle, Filter, Archive, Search, Download, Edit, Trash2 } from "lucide-react";
+import { UserPlus, Users, UserCircle, Filter, Archive, Search, Download, Trash2 } from "lucide-react";
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<any[]>([]);

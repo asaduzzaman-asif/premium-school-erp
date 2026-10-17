@@ -94,7 +94,7 @@ export default function ApplyPage() {
 
               <div className="space-y-2">
                 <Label>Applying for Class</Label>
-                <Select value={formData.class_id || undefined} onValueChange={(val) => setFormData({...formData, class_id: val || ""})}>
+                <Select value={formData.class_id || undefined} onValueChange={(val: string | null) => setFormData({...formData, class_id: val || ""})}>
                   <SelectTrigger><SelectValue placeholder="-- Select Class --" /></SelectTrigger>
                   <SelectContent>
                     {classes.map(c => (

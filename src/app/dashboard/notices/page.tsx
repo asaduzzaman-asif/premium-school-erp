@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BellRing, MessageSquare, History, Users, AlertTriangle, CalendarCheck, Send, CheckCircle2, XCircle } from "lucide-react";
+import { BellRing, MessageSquare, History, Users, AlertTriangle, CalendarCheck, Send, CheckCircle2, XCircle } from "lucide-react";
 
 export default function NoticesPage() {
   const [activeTab, setActiveTab] = useState<"BOARD" | "COMMUNICATION" | "MEETINGS">("BOARD");
@@ -98,12 +98,12 @@ export default function NoticesPage() {
                   <div className="space-y-2"><Label>Title</Label><Input required value={noticeData.title} onChange={e => setNoticeData({...noticeData, title: e.target.value})} /></div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2"><Label>Category</Label>
-                      <Select value={noticeData.notice_type || undefined} onValueChange={(val: string | null) => setNoticeData({...noticeData, notice_type: val || ""})}>
+                      <Select value={noticeData.notice_type || undefined} onValueChange={(val: string) => setNoticeData({...noticeData, notice_type: val})}>
                         <SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="General">General</SelectItem><SelectItem value="Exam">Exam Notice</SelectItem><SelectItem value="Holiday">Holiday</SelectItem><SelectItem value="Emergency">Emergency</SelectItem></SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2"><Label>Target Class</Label>
-                      <Select value={noticeData.target_class || undefined} onValueChange={(val: string | null) => setNoticeData({...noticeData, target_class: val || ""})}>
+                      <Select value={noticeData.target_class || undefined} onValueChange={(val: string) => setNoticeData({...noticeData, target_class: val})}>
                         <SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="All">School-wide</SelectItem>{classes.map(c => <SelectItem key={c.id} value={c.class_name}>{c.class_name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
@@ -176,7 +176,7 @@ export default function NoticesPage() {
               <CardContent className="p-6">
                 <form onSubmit={requestMeeting} className="space-y-4">
                   <div className="space-y-2"><Label>Select Teacher</Label>
-                    <Select value={meetingData.teacher_id || undefined} onValueChange={(val: string | null) => setMeetingData({...meetingData, teacher_id: val || ""})}>
+                    <Select value={meetingData.teacher_id || undefined} onValueChange={(val: string) => setMeetingData({...meetingData, teacher_id: val})}>
                       <SelectTrigger><SelectValue placeholder="-- Teacher --"/></SelectTrigger>
                       <SelectContent>{teachers.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.first_name} {t.last_name}</SelectItem>)}</SelectContent>
                     </Select>

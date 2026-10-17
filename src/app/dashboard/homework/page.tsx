@@ -91,21 +91,21 @@ export default function HomeworkPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Class</Label>
-                  <Select value={formData.class_id || undefined} onValueChange={(val) => handleClassChange(val || "")}>
+                  <Select value={formData.class_id || undefined} onValueChange={(val: string | null) => handleClassChange(val || "")}>
                     <SelectTrigger><SelectValue placeholder="-- Class --"/></SelectTrigger>
                     <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Section</Label>
-                  <Select value={formData.section_id || undefined} onValueChange={(val) => setFormData({ ...formData, section_id: val || "" })} disabled={!formData.class_id}>
+                  <Select value={formData.section_id || undefined} onValueChange={(val: string | null) => setFormData({ ...formData, section_id: val || "" })} disabled={!formData.class_id}>
                     <SelectTrigger><SelectValue placeholder="-- Section --"/></SelectTrigger>
                     <SelectContent>{filteredSections.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.section_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Subject</Label>
-                  <Select value={formData.subject_id || undefined} onValueChange={(val) => setFormData({ ...formData, subject_id: val || "" })} disabled={!formData.class_id}>
+                  <Select value={formData.subject_id || undefined} onValueChange={(val: string | null) => setFormData({ ...formData, subject_id: val || "" })} disabled={!formData.class_id}>
                     <SelectTrigger><SelectValue placeholder="-- Subject --"/></SelectTrigger>
                     <SelectContent>{filteredSubjects.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.subject_name}</SelectItem>)}</SelectContent>
                   </Select>

@@ -67,7 +67,7 @@ export default function UsersPage() {
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-2">
                 <Label>Select Role</Label>
-                <Select value={formData.role || undefined} onValueChange={(val: string | null) => setFormData({...formData, role: val || ""})}>
+                <Select value={formData.role || undefined} onValueChange={(val) => setFormData({...formData, role: val})}>
                   <SelectTrigger><SelectValue/></SelectTrigger>
                   <SelectContent><SelectItem value="Super Admin">Super Admin</SelectItem><SelectItem value="School Admin">School Admin</SelectItem><SelectItem value="Principal">Principal</SelectItem><SelectItem value="Parent">Parent/Guardian</SelectItem></SelectContent>
                 </Select>
@@ -87,14 +87,14 @@ export default function UsersPage() {
             <form onSubmit={handleLinkParent} className="space-y-4">
               <div className="space-y-2">
                 <Label>Select Parent Account</Label>
-                <Select value={linkData.parent_user_id || undefined} onValueChange={(val: string | null) => setLinkData({...linkData, parent_user_id: val || ""})}>
+                <Select value={linkData.parent_user_id || undefined} onValueChange={(val) => setLinkData({...linkData, parent_user_id: val})}>
                   <SelectTrigger><SelectValue placeholder="-- Parent --"/></SelectTrigger>
                   <SelectContent>{users.filter(u => u.role === "Parent").map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.username}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Select Student to Link</Label>
-                <Select value={linkData.student_id || undefined} onValueChange={(val: string | null) => setLinkData({...linkData, student_id: val || ""})}>
+                <Select value={linkData.student_id || undefined} onValueChange={(val) => setLinkData({...linkData, student_id: val})}>
                   <SelectTrigger><SelectValue placeholder="-- Student --"/></SelectTrigger>
                   <SelectContent>{students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.first_name} {s.last_name}</SelectItem>)}</SelectContent>
                 </Select>
