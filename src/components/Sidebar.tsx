@@ -71,8 +71,7 @@ export default function Sidebar() {
   } else if (role === "Parent" || role === "Student") {
     menus = [
       { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-      // এখানে পাথ পরিবর্তন করে সরাসরি /dashboard দেওয়া হলো যাতে নতুন ফোল্ডার ছাড়াই প্রিমিয়াম প্রোফাইল দেখায়
-      { name: role === "Parent" ? "My Children" : "My Profile", path: "/dashboard", icon: Users },
+      { name: role === "Parent" ? "My Children" : "My Profile", path: "/dashboard/profile", icon: Users },
       { name: "Homework", path: "/dashboard/homework", icon: ClipboardList },
       { name: "Notice Board", path: "/dashboard/notices", icon: BellRing }, 
       { name: "Library", path: "/dashboard/library", icon: Library },
